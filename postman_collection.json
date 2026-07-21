@@ -1,0 +1,530 @@
+{
+  "info": {
+    "name": "Expense Tracker API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "token", "value": "" },
+    { "key": "bankId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "transactionId", "value": "" },
+    { "key": "emiId", "value": "" },
+    { "key": "subscriptionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Banks",
+      "item": [
+        {
+          "name": "Create Bank",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/banks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankName\": \"HDFC\",\n  \"accountType\": \"savings\",\n  \"currentBalance\": 50000,\n  \"accountNumberLast4\": \"1234\",\n  \"color\": \"#0f62fe\",\n  \"icon\": \"bank\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Banks",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/banks"
+          }
+        },
+        {
+          "name": "Get Bank By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/banks/{{bankId}}"
+          }
+        },
+        {
+          "name": "Update Bank",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/banks/{{bankId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankName\": \"HDFC Updated\",\n  \"currentBalance\": 52000\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Bank",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/banks/{{bankId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cash Wallet",
+      "item": [
+        {
+          "name": "Get Cash Wallet",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/cash"
+          }
+        },
+        {
+          "name": "Update Cash Wallet",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/cash",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"balance\": 2500\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/categories",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Groceries\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/categories"
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/categories/{{categoryId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Groceries Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/categories/{{categoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Create Income (Bank)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"income\",\n  \"paymentMethod\": \"bank\",\n  \"bankId\": \"{{bankId}}\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"amount\": 12000,\n  \"note\": \"Salary\",\n  \"date\": \"2026-05-01\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Expense (Cash)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"expense\",\n  \"paymentMethod\": \"cash\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"amount\": 250,\n  \"note\": \"Snacks\",\n  \"date\": \"2026-05-02\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Transfer Bank to Cash",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"transfer\",\n  \"transferType\": \"bank_to_cash\",\n  \"fromBankId\": \"{{bankId}}\",\n  \"amount\": 500,\n  \"note\": \"ATM withdrawal\",\n  \"date\": \"2026-05-03\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Transfer Cash to Bank",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"transfer\",\n  \"transferType\": \"cash_to_bank\",\n  \"toBankId\": \"{{bankId}}\",\n  \"amount\": 1000,\n  \"note\": \"Cash deposit\",\n  \"date\": \"2026-05-04\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Transfer Bank to Bank",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"transfer\",\n  \"transferType\": \"bank_to_bank\",\n  \"fromBankId\": \"{{bankId}}\",\n  \"toBankId\": \"{{bankId}}\",\n  \"amount\": 2000,\n  \"note\": \"Move funds\",\n  \"date\": \"2026-05-05\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Transactions (Filters + Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?page=1&limit=10&type=expense&categoryId={{categoryId}}&bankId={{bankId}}&startDate=2026-05-01&endDate=2026-05-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["transactions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "type", "value": "expense" },
+                { "key": "categoryId", "value": "{{categoryId}}" },
+                { "key": "bankId", "value": "{{bankId}}" },
+                { "key": "startDate", "value": "2026-05-01" },
+                { "key": "endDate", "value": "2026-05-31" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "EMI / Auto Payments",
+      "item": [
+        {
+          "name": "Create EMI",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/emis",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Car EMI\",\n  \"amount\": 15000,\n  \"frequency\": \"monthly\",\n  \"startDate\": \"2026-01-10\",\n  \"nextDueDate\": \"2026-06-10\",\n  \"paymentMethod\": \"bank\",\n  \"bankId\": \"{{bankId}}\",\n  \"note\": \"Auto debit\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get EMIs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/emis"
+          }
+        },
+        {
+          "name": "Update EMI",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/emis/{{emiId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 15500,\n  \"note\": \"Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Toggle EMI Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/emis/{{emiId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete EMI",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/emis/{{emiId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Create Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/subscriptions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Netflix\",\n  \"amount\": 499,\n  \"frequency\": \"monthly\",\n  \"startDate\": \"2026-01-01\",\n  \"nextDueDate\": \"2026-06-01\",\n  \"paymentMethod\": \"bank\",\n  \"bankId\": \"{{bankId}}\",\n  \"note\": \"Streaming\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/subscriptions"
+          }
+        },
+        {
+          "name": "Update Subscription",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/subscriptions/{{subscriptionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 599,\n  \"note\": \"Plan upgrade\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Toggle Subscription Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/subscriptions/{{subscriptionId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Subscription",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/subscriptions/{{subscriptionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Daily Report",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/reports/daily?date=2026-05-10"
+          }
+        },
+        {
+          "name": "Monthly Report",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/reports/monthly?date=2026-05-01"
+          }
+        },
+        {
+          "name": "Yearly Report",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/reports/yearly?date=2026-01-01"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/dashboard?date=2026-05-01"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PDF",
+      "item": [
+        {
+          "name": "Download Monthly Report PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/pdf/monthly?date=2026-05-01"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Telegram Ready",
+      "item": [
+        {
+          "name": "Telegram Add Income",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/telegram/income",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"cash\",\n  \"amount\": 500,\n  \"note\": \"Telegram income\",\n  \"date\": \"2026-05-06\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Telegram Add Expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/telegram/expense",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"cash\",\n  \"amount\": 100,\n  \"note\": \"Telegram expense\",\n  \"date\": \"2026-05-06\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Telegram Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/telegram/transfer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transferType\": \"bank_to_cash\",\n  \"fromBankId\": \"{{bankId}}\",\n  \"amount\": 300,\n  \"note\": \"Telegram transfer\",\n  \"date\": \"2026-05-06\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Telegram Get Balances",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/telegram/balances"
+          }
+        }
+      ]
+    }
+  ]
+}
