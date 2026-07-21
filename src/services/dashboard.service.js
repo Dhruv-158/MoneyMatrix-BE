@@ -1,6 +1,7 @@
 import { Transaction } from "../models/Transaction.js";
 import { Bank } from "../models/Bank.js";
 import { CashWallet } from "../models/CashWallet.js";
+import mongoose from "mongoose";
 
 export const getDashboardSummary = async (userId, startDate, endDate) => {
   const [cash, banks, totals] = await Promise.all([
@@ -35,26 +36,35 @@ export const getDashboardSummary = async (userId, startDate, endDate) => {
 };
 
 export const getRecentTransactions = async (userId, limit = 10) => {
-  return Transaction.find({ userId }).sort({ date: -1 }).limit(limit);
+  try{
+    return Transaction.find({ userId }).sort({ date: -1 }).limit(limit);
+  }catch(error){
+    console.log("error : ",error)
+  }
 };
 
 export const getGraphAnalytics = async (userId, startDate, endDate) => {
-  return Transaction.aggregate([
-    { $match: { userId, date: { $gte: startDate, $lte: endDate } } },
-    {
-      $group: {
-        _id: { type: "$type", month: { $month: "$date" } },
-        total: { $sum: "$amount" }
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        type: "$_id.type",
-        month: "$_id.month",
-        total: 1
-      }
-    },
-    { $sort: { month: 1 } }
-  ]);
+  try {
+    return Transaction.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId), } },
+      {
+        $group: {
+          _id: { type: "$type", month: { $month: "$date" } },
+          total: { $sum: "$amount" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          type: "$_id.type",
+          month: "$_id.month",
+          total: 1
+        }
+      },
+      { $sort: { month: 1 } }
+    ]);
+  }
+  catch (error) {
+    console.log("error :", error)
+  }
 };

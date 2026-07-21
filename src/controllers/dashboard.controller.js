@@ -12,9 +12,10 @@ const getMonthlyRange = (dateInput) => {
 export const getDashboard = asyncHandler(async (req, res) => {
   const { start, end } = getMonthlyRange(req.query.date);
   const [summary, recent, graph] = await Promise.all([
-    getDashboardSummary(req.user.id, start, end),
-    getRecentTransactions(req.user.id, 10),
-    getGraphAnalytics(req.user.id, start, end)
+    await getDashboardSummary(req.user.id, start, end),
+    await getRecentTransactions(req.user.id, 10),
+    await getGraphAnalytics(req.user.id, start, end),
+    console.log("🚀 ~ getGraphAnalytics(req.user.id, start, end):", await getGraphAnalytics(req.user.id, start, end))
   ]);
 
   return successResponse(res, "Dashboard fetched", {

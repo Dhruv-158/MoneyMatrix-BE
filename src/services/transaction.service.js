@@ -5,7 +5,8 @@ export const createTransaction = async (payload, session) => {
 };
 
 export const listTransactions = async (filter, options) => {
-  const query = Transaction.find(filter).sort({ date: -1, createdAt: -1 }).skip(options.skip).limit(options.limit);
+  console.log("🚀 ~ listTransactions: filter, options", filter, options);
+  const query = Transaction.find(filter).sort({ _id: -1 }).skip(options.skip).limit(options.limit);
   return query.populate("bankId", "bankName accountType").populate("categoryId", "name");
 };
 
@@ -14,5 +15,5 @@ export const countTransactions = async (filter) => {
 };
 
 export const getRecentTransactions = async (userId, limit = 10) => {
-  return Transaction.find({ userId }).sort({ date: -1, createdAt: -1 }).limit(limit);
+  return Transaction.find({ userId }).sort({ _id: -1 }).limit(limit);
 };

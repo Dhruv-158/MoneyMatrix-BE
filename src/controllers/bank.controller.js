@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { createdResponse, successResponse, errorResponse } from "../utils/response.js";
 import { createBank, getBanks, getBankById, updateBank, deleteBank } from "../services/bank.service.js";
 import { resolveIconFields } from "../utils/iconResolver.js";
+import { Transaction } from "../models/Transaction.js";
 
 export const createBankController = asyncHandler(async (req, res) => {
   const iconFields = resolveIconFields({
@@ -11,6 +12,17 @@ export const createBankController = asyncHandler(async (req, res) => {
   });
   const payload = { ...req.body, ...iconFields, userId: req.user.id };
   const bank = await createBank(payload);
+  if (payload.currentBalance > 0) {
+    await Transaction.create({
+      userId: req.user.id,
+      type: "income",
+      paymentMethod: "bank",
+      bankId: bank._id,
+      amount: payload.currentBalance,
+      note: "Initial balance",
+      date: new Date()
+    });
+  }
   return createdResponse(res, "Bank created", bank);
 });
 

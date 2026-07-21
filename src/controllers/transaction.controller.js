@@ -135,6 +135,12 @@ export const createTransactionController = asyncHandler(async (req, res) => {
 
     await commitSession(session);
 
+    // Populate related fields to match listTransactionsController response
+    await transaction.populate([
+      { path: "bankId", select: "bankName accountType" },
+      { path: "categoryId", select: "name" }
+    ]);
+
     return createdResponse(res, "Transaction created", transaction);
   } catch (err) {
     await abortSession(session);
@@ -175,9 +181,13 @@ export const listTransactionsController = asyncHandler(async (req, res) => {
     filter.date.$gte = startDate;
     filter.date.$lte = endDate;
   } else if (req.query.startDate || req.query.endDate) {
-    // Filter by custom date range
-    if (req.query.startDate) filter.date.$gte = new Date(req.query.startDate);
-    if (req.query.endDate) filter.date.$lte = new Date(req.query.endDate);
+    filter.date.$gte = new Date(req.query.startDate);
+  
+
+    const end = new Date(req.query.endDate);
+    end.setHours(23, 59, 59, 999);
+    filter.date.$lte = end;
+  
   }
 
   // Remove empty date filter if no date params provided
@@ -187,6 +197,7 @@ export const listTransactionsController = asyncHandler(async (req, res) => {
     listTransactions(filter, { skip, limit }),
     countTransactions(filter)
   ]);
+  console.log("🚀 ~ transactions: ========>", transactions);
 
   return successResponse(res, "Transactions fetched", {
     items: transactions,
