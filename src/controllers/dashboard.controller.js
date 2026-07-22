@@ -1,6 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { successResponse } from "../utils/response.js";
-import { getDashboardSummary, getRecentTransactions, getGraphAnalytics } from "../services/dashboard.service.js";
+import { getDashboardSummary, getRecentTransactions, getGraphAnalytics, getCategoryExpenses } from "../services/dashboard.service.js";
 
 const getMonthlyRange = (dateInput) => {
   const date = dateInput ? new Date(dateInput) : new Date();
@@ -11,16 +11,17 @@ const getMonthlyRange = (dateInput) => {
 
 export const getDashboard = asyncHandler(async (req, res) => {
   const { start, end } = getMonthlyRange(req.query.date);
-  const [summary, recent, graph] = await Promise.all([
-    await getDashboardSummary(req.user.id, start, end),
-    await getRecentTransactions(req.user.id, 10),
-    await getGraphAnalytics(req.user.id, start, end),
-    console.log("🚀 ~ getGraphAnalytics(req.user.id, start, end):", await getGraphAnalytics(req.user.id, start, end))
+  const [summary, recent, graph, categoryExpenses] = await Promise.all([
+    getDashboardSummary(req.user.id, start, end),
+    getRecentTransactions(req.user.id, 10),
+    getGraphAnalytics(req.user.id, start, end),
+    getCategoryExpenses(req.user.id, start, end)
   ]);
 
   return successResponse(res, "Dashboard fetched", {
     ...summary,
     recentTransactions: recent,
-    analytics: graph
+    analytics: graph,
+    categoryExpenses
   });
 });

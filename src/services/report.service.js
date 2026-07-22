@@ -92,6 +92,23 @@ export const getBankTransfers = async (userId, startDate, endDate) => {
   return result[0]?.total || 0;
 };
 
+// Get cash withdrawals (Bank -> Cash transfers)
+export const getCashWithdrawals = async (userId, startDate, endDate) => {
+  const userObjId = toObjectId(userId);
+  const result = await Transaction.aggregate([
+    {
+      $match: {
+        userId: userObjId,
+        type: "transfer",
+        transferType: "bank_to_cash",
+        date: { $gte: startDate, $lte: endDate }
+      }
+    },
+    { $group: { _id: null, total: { $sum: "$amount" } } }
+  ]);
+  return result[0]?.total || 0;
+};
+
 export const getBalances = async (userId, atDate = null) => {
   const userObjId = toObjectId(userId);
   const banks = await Bank.find({ userId: userObjId }).select("bankName currentBalance accountType");
