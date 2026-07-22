@@ -36,17 +36,21 @@ export const getDashboardSummary = async (userId, startDate, endDate) => {
 };
 
 export const getRecentTransactions = async (userId, limit = 10) => {
-  try{
-    return Transaction.find({ userId }).sort({ date: -1 }).limit(limit);
-  }catch(error){
-    console.log("error : ",error)
+  try {
+    return Transaction.find({ userId })
+      .populate("categoryId", "name")
+      .populate("bankId", "bankName accountType")
+      .sort({ date: -1 })
+      .limit(limit);
+  } catch (error) {
+    console.log("error : ", error);
   }
 };
 
 export const getGraphAnalytics = async (userId, startDate, endDate) => {
   try {
     return Transaction.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId), } },
+      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
       {
         $group: {
           _id: { type: "$type", month: { $month: "$date" } },
@@ -63,8 +67,47 @@ export const getGraphAnalytics = async (userId, startDate, endDate) => {
       },
       { $sort: { month: 1 } }
     ]);
+  } catch (error) {
+    console.log("error :", error);
   }
-  catch (error) {
-    console.log("error :", error)
+};
+
+export const getCategoryExpenses = async (userId, startDate, endDate) => {
+  try {
+    return Transaction.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          type: "expense",
+          date: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: "$categoryId",
+          total: { $sum: "$amount" }
+        }
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "_id",
+          foreignField: "_id",
+          as: "category"
+        }
+      },
+      { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          name: { $ifNull: ["$category.name", "Uncategorized"] },
+          total: 1
+        }
+      },
+      { $sort: { total: -1 } }
+    ]);
+  } catch (error) {
+    console.log("error in getCategoryExpenses:", error);
+    return [];
   }
 };

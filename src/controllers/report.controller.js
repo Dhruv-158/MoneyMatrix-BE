@@ -1,6 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { successResponse } from "../utils/response.js";
-import { getSummaryByDateRange, getBalances, getBankWiseExpenses, getTransactionCount, getCashExpenses, getBankTransfers, getDailyBreakdown } from "../services/report.service.js";
+import { getSummaryByDateRange, getBalances, getBankWiseExpenses, getTransactionCount, getCashExpenses, getBankTransfers, getDailyBreakdown,getCashWithdrawals } from "../services/report.service.js";
 
 const getDateRange = (type, dateInput) => {
   // Parse date string YYYY-MM-DD and create start/end as UTC dates
@@ -59,14 +59,15 @@ export const getDailyReport = asyncHandler(async (req, res) => {
 
 export const getMonthlyReport = asyncHandler(async (req, res) => {
   const { start, end } = getDateRange("monthly", req.query.date);
-  const [summary, balances, bankWise, txnCount, cashExpenses, transfers, dailyBreakdown] = await Promise.all([
+  const [summary, balances, bankWise, txnCount, cashExpenses, transfers, dailyBreakdown, cashWithdrawals] = await Promise.all([
     getSummaryByDateRange(req.user.id, start, end),
     getBalances(req.user.id, end),
     getBankWiseExpenses(req.user.id, start, end),
     getTransactionCount(req.user.id, start, end),
     getCashExpenses(req.user.id, start, end),
     getBankTransfers(req.user.id, start, end),
-    getDailyBreakdown(req.user.id, start, end)
+    getDailyBreakdown(req.user.id, start, end),
+    getCashWithdrawals(req.user.id, start, end)
   ]);
 
   const netSavings = summary.income - summary.expense;
@@ -79,7 +80,8 @@ export const getMonthlyReport = asyncHandler(async (req, res) => {
     transactionCount: txnCount,
     cashExpenses,
     transfers,
-    dailyBreakdown
+    dailyBreakdown,
+    cashWithdrawals
   });
 });
 

@@ -13,9 +13,14 @@ export const downloadMonthlyReportPdf = asyncHandler(async (req, res) => {
 
   await getMonthlyReport({ ...req, query: req.query }, fakeRes);
 
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", "attachment; filename=monthly-report.pdf");
+  const type = req.query.type || "Monthly";
+  const dateParam = req.query.date || "";
 
-  const stream = buildPdfReport(reportData);
-  stream.pipe(res);
+  const pdfBuffer = await buildPdfReport(reportData, type, dateParam);
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename=report-${type}-${dateParam}.pdf`);
+  res.setHeader("Content-Length", pdfBuffer.length);
+
+  res.end(pdfBuffer);
 });

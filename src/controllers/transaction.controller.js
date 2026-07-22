@@ -41,6 +41,10 @@ export const createTransactionController = asyncHandler(async (req, res) => {
     date
   } = req.body;
 
+  let finalNote = note;
+  let finalBankId = bankId;
+  let finalPaymentMethod = paymentMethod;
+
   const session = await startSessionIfEnabled();
 
   try {
@@ -55,6 +59,8 @@ export const createTransactionController = asyncHandler(async (req, res) => {
         ensureSufficientBalance(fromBank.currentBalance, amount);
         await updateBankBalance(fromBankId, userId, -amount, session);
         await updateCashBalance(userId, amount, session);
+        finalBankId = fromBankId;
+        finalNote = note || `₹${amount} withdrawn from ${fromBank.bankName} to Cash`;
       }
 
       if (transferType === "cash_to_bank") {
@@ -65,6 +71,9 @@ export const createTransactionController = asyncHandler(async (req, res) => {
         if (!toBank) throwNotFound("Bank not found");
         await updateCashBalance(userId, -amount, session);
         await updateBankBalance(toBankId, userId, amount, session);
+        finalPaymentMethod = "cash";
+        finalBankId = "cash";
+        finalNote = note || `₹${amount} deposited to ${toBank.bankName} from Cash`;
       }
 
       if (transferType === "bank_to_bank") {
@@ -78,6 +87,8 @@ export const createTransactionController = asyncHandler(async (req, res) => {
         ensureSufficientBalance(fromBank.currentBalance, amount);
         await updateBankBalance(fromBankId, userId, -amount, session);
         await updateBankBalance(toBankId, userId, amount, session);
+        finalBankId = toBankId;
+        finalNote = note || `₹${amount} transferred from ${fromBank.bankName} to ${toBank.bankName}`;
       }
     }
 
@@ -120,11 +131,11 @@ export const createTransactionController = asyncHandler(async (req, res) => {
       {
         userId,
         type,
-        paymentMethod,
-        bankId,
+        paymentMethod: finalPaymentMethod,
+        bankId: finalBankId,
         categoryId,
         amount,
-        note,
+        note: finalNote,
         transferType,
         fromBankId,
         toBankId,
@@ -153,13 +164,32 @@ export const listTransactionsController = asyncHandler(async (req, res) => {
   const { page, limit, skip } = getPagination(req.query);
 
   const filter = { userId };
-  if (req.query.type) filter.type = req.query.type;
+  if (req.query.type) {
+    if (req.query.type === 'income') {
+      // Income includes real income OR transfer inflows (e.g. Bank -> Cash withdrawals)
+      filter.$or = [
+        { type: 'income' },
+        { type: 'transfer', transferType: 'bank_to_cash' }
+      ];
+    } else {
+      filter.type = req.query.type;
+    }
+  }
+
   if (req.query.bankId) {
-    filter.$or = [
-      { bankId: req.query.bankId },
-      { fromBankId: req.query.bankId },
-      { toBankId: req.query.bankId }
-    ];
+    if (req.query.bankId === 'cash') {
+      filter.$or = [
+        { paymentMethod: 'cash' },
+        { transferType: 'bank_to_cash' },
+        { transferType: 'cash_to_bank' }
+      ];
+    } else {
+      filter.$or = [
+        { bankId: req.query.bankId },
+        { fromBankId: req.query.bankId },
+        { toBankId: req.query.bankId }
+      ];
+    }
   }
 
   // Handle date filtering with month and year support
