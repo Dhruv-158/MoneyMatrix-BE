@@ -5,6 +5,8 @@ import { createTransaction, listTransactions, countTransactions } from "../servi
 import { getBankById, updateBankBalance } from "../services/bank.service.js";
 import { getOrCreateWallet, updateCashBalance } from "../services/cash.service.js";
 import { startSessionIfEnabled, commitSession, abortSession } from "../utils/transactionSession.js";
+import { Transaction } from "../models/Transaction.js";
+import { sendEmail } from "../emails/emailSender.js";
 
 const ensureSufficientBalance = (current, amount) => {
   if (current < amount) {
@@ -38,7 +40,8 @@ export const createTransactionController = asyncHandler(async (req, res) => {
     transferType,
     fromBankId,
     toBankId,
-    date
+    date,
+    friendDetails
   } = req.body;
 
   let finalNote = note;
@@ -139,7 +142,8 @@ export const createTransactionController = asyncHandler(async (req, res) => {
         transferType,
         fromBankId,
         toBankId,
-        date
+        date,
+        friendDetails
       },
       session
     );
@@ -152,6 +156,39 @@ export const createTransactionController = asyncHandler(async (req, res) => {
       { path: "categoryId", select: "name" }
     ]);
 
+    // Async Email Notification to Friend if provided
+    if (friendDetails?.email && friendDetails?.sendNotification !== false) {
+      const senderName = req.user?.name || "A MoneyMatrix user";
+      const formattedAmount = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(amount);
+      
+      const subject = `MoneyMatrix: New transaction record from ${senderName}`;
+      const html = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 24px; border-radius: 12px;">
+          <h2 style="color: #3b82f6; margin-bottom: 8px;">Hi ${friendDetails.name || "Friend"},</h2>
+          <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">
+            <strong>${senderName}</strong> has added a new transaction involving you on MoneyMatrix:
+          </p>
+
+          <div style="background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 18px; border-radius: 10px; margin-bottom: 20px;">
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase;">Amount</p>
+            <p style="font-size: 24px; font-weight: 800; color: #ef4444; margin: 0;">${formattedAmount}</p>
+            ${finalNote ? `<p style="font-size: 13px; color: #cbd5e1; margin-top: 10px;"><strong>Note:</strong> ${finalNote}</p>` : ""}
+          </div>
+
+          <p style="font-size: 12px; color: #64748b;">
+            Automated monthly reminders will be sent if this balance remains pending.
+          </p>
+        </div>
+      `;
+
+      sendEmail({
+        to: friendDetails.email,
+        subject,
+        text: `Hi ${friendDetails.name}, ${senderName} recorded a transaction of ${formattedAmount} with you.`,
+        html
+      }).catch((err) => console.error("Error sending initial friend email:", err));
+    }
+
     return createdResponse(res, "Transaction created", transaction);
   } catch (err) {
     await abortSession(session);
@@ -161,9 +198,11 @@ export const createTransactionController = asyncHandler(async (req, res) => {
 
 export const listTransactionsController = asyncHandler(async (req, res) => {
   const userId = req.user.id;
+  console.log("query ===>",req.query);
   const { page, limit, skip } = getPagination(req.query);
 
   const filter = { userId };
+  console.log("reqQueryType =====>", req.query.type);
   if (req.query.type) {
     if (req.query.type === 'income') {
       // Income includes real income OR transfer inflows (e.g. Bank -> Cash withdrawals)
@@ -195,31 +234,40 @@ export const listTransactionsController = asyncHandler(async (req, res) => {
   // Handle date filtering with month and year support
   filter.date = {};
   
-  if (req.query.month && req.query.year) {
-    // Filter by specific month and year
-    const year = parseInt(req.query.year);
-    const month = parseInt(req.query.month);
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
+  if (req.query.startDate && req.query.endDate) {
+    const startDate = new Date(req.query.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(req.query.endDate);
+    endDate.setHours(23, 59, 59, 999)
     filter.date.$gte = startDate;
     filter.date.$lte = endDate;
-  } else if (req.query.year) {
-    // Filter by year only
-    const year = parseInt(req.query.year);
-    const startDate = new Date(year, 0, 1);
-    const endDate = new Date(year, 11, 31, 23, 59, 59);
+  }else if (req.query.year && req.query.month) {
+    // 2. Specific Month and Year (e.g. Year 2021, Month 7)
+    const year = parseInt(req.query.year, 10);
+    const month = parseInt(req.query.month, 10); // 1-indexed (1 = Jan, 7 = July)
+    const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
     filter.date.$gte = startDate;
     filter.date.$lte = endDate;
-  } else if (req.query.startDate || req.query.endDate) {
-    filter.date.$gte = new Date(req.query.startDate);
-  
-
-    const end = new Date(req.query.endDate);
-    end.setHours(23, 59, 59, 999);
-    filter.date.$lte = end;
-  
+  }else if (req.query.year) {
+    const year = parseInt(req.query.year, 10);
+    const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+    filter.date.$gte = startDate;
+    filter.date.$lte = endDate;
+  }else if (req.query.startDate || req.query.endDate) {
+    if (req.query.startDate) {
+      const start = new Date(req.query.startDate);
+      start.setHours(0, 0, 0, 0);
+      filter.date.$gte = start;
+    }
+    if (req.query.endDate) {
+      const end = new Date(req.query.endDate);
+      end.setHours(23, 59, 59, 999);
+      filter.date.$lte = end;
+    }
   }
-
+  
   // Remove empty date filter if no date params provided
   if (Object.keys(filter.date).length === 0) delete filter.date;
 
@@ -235,4 +283,24 @@ export const listTransactionsController = asyncHandler(async (req, res) => {
     limit,
     total
   });
+});
+
+export const settleFriendTransactionController = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  const transaction = await Transaction.findOne({ _id: id, userId });
+  if (!transaction) throwNotFound("Transaction not found");
+
+  if (!transaction.friendDetails) {
+    throwBadRequest("Transaction does not contain friend details");
+  }
+
+  transaction.friendDetails.status = "settled";
+  transaction.friendDetails.autoReminder = false;
+  transaction.friendDetails.settledAt = new Date();
+
+  await transaction.save();
+
+  return successResponse(res, "Friend transaction marked as settled", transaction);
 });

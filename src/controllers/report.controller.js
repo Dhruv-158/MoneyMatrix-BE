@@ -1,6 +1,16 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { successResponse } from "../utils/response.js";
-import { getSummaryByDateRange, getBalances, getBankWiseExpenses, getTransactionCount, getCashExpenses, getBankTransfers, getDailyBreakdown,getCashWithdrawals } from "../services/report.service.js";
+import {
+  getSummaryByDateRange,
+  getBalances,
+  getBankWiseExpenses,
+  getCategoryWiseExpenses,
+  getTransactionCount,
+  getCashExpenses,
+  getBankTransfers,
+  getDailyBreakdown,
+  getCashWithdrawals
+} from "../services/report.service.js";
 
 const getDateRange = (type, dateInput) => {
   // Parse date string YYYY-MM-DD and create start/end as UTC dates
@@ -35,10 +45,11 @@ const getDateRange = (type, dateInput) => {
 
 export const getDailyReport = asyncHandler(async (req, res) => {
   const { start, end } = getDateRange("daily", req.query.date);
-  const [summary, balances, bankWise, txnCount, cashExpenses, transfers] = await Promise.all([
+  const [summary, balances, bankWise, categoryWise, txnCount, cashExpenses, transfers] = await Promise.all([
     getSummaryByDateRange(req.user.id, start, end),
     getBalances(req.user.id, end),
     getBankWiseExpenses(req.user.id, start, end),
+    getCategoryWiseExpenses(req.user.id, start, end),
     getTransactionCount(req.user.id, start, end),
     getCashExpenses(req.user.id, start, end),
     getBankTransfers(req.user.id, start, end)
@@ -51,6 +62,7 @@ export const getDailyReport = asyncHandler(async (req, res) => {
     cashBalance: balances.cashBalance,
     bankBalances: balances.banks,
     bankWiseExpenses: bankWise,
+    categoryWiseExpenses: categoryWise,
     transactionCount: txnCount,
     cashExpenses,
     transfers
@@ -59,10 +71,11 @@ export const getDailyReport = asyncHandler(async (req, res) => {
 
 export const getMonthlyReport = asyncHandler(async (req, res) => {
   const { start, end } = getDateRange("monthly", req.query.date);
-  const [summary, balances, bankWise, txnCount, cashExpenses, transfers, dailyBreakdown, cashWithdrawals] = await Promise.all([
+  const [summary, balances, bankWise, categoryWise, txnCount, cashExpenses, transfers, dailyBreakdown, cashWithdrawals] = await Promise.all([
     getSummaryByDateRange(req.user.id, start, end),
     getBalances(req.user.id, end),
     getBankWiseExpenses(req.user.id, start, end),
+    getCategoryWiseExpenses(req.user.id, start, end),
     getTransactionCount(req.user.id, start, end),
     getCashExpenses(req.user.id, start, end),
     getBankTransfers(req.user.id, start, end),
@@ -77,6 +90,7 @@ export const getMonthlyReport = asyncHandler(async (req, res) => {
     cashBalance: balances.cashBalance,
     bankBalances: balances.banks,
     bankWiseExpenses: bankWise,
+    categoryWiseExpenses: categoryWise,
     transactionCount: txnCount,
     cashExpenses,
     transfers,
@@ -87,10 +101,11 @@ export const getMonthlyReport = asyncHandler(async (req, res) => {
 
 export const getYearlyReport = asyncHandler(async (req, res) => {
   const { start, end } = getDateRange("yearly", req.query.date);
-  const [summary, balances, bankWise, txnCount, cashExpenses, transfers, dailyBreakdown] = await Promise.all([
+  const [summary, balances, bankWise, categoryWise, txnCount, cashExpenses, transfers, dailyBreakdown] = await Promise.all([
     getSummaryByDateRange(req.user.id, start, end),
     getBalances(req.user.id, end),
     getBankWiseExpenses(req.user.id, start, end),
+    getCategoryWiseExpenses(req.user.id, start, end),
     getTransactionCount(req.user.id, start, end),
     getCashExpenses(req.user.id, start, end),
     getBankTransfers(req.user.id, start, end),
@@ -104,6 +119,7 @@ export const getYearlyReport = asyncHandler(async (req, res) => {
     cashBalance: balances.cashBalance,
     bankBalances: balances.banks,
     bankWiseExpenses: bankWise,
+    categoryWiseExpenses: categoryWise,
     transactionCount: txnCount,
     cashExpenses,
     transfers,
