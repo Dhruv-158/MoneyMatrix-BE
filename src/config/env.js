@@ -5,7 +5,7 @@ dotenv.config();
 const requiredEnv = ["MONGO_URI", "JWT_SECRET"];
 requiredEnv.forEach((key) => {
   if (!process.env[key]) {
-    console.log(`Error: Missing required environment variable ===========> ${key}`);
+    console.log(`Error: Missing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                required environment variable ===========> ${key}`);
     throw new Error(`Missing required env: ${key}`);
   }
 });

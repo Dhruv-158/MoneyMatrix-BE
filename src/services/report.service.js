@@ -50,6 +50,31 @@ export const getBankWiseExpenses = async (userId, startDate, endDate) => {
   ]);
 };
 
+export const getCategoryWiseExpenses = async (userId, startDate, endDate) => {
+  const userObjId = toObjectId(userId);
+  return Transaction.aggregate([
+    {
+      $match: {
+        userId: userObjId,
+        type: "expense",
+        date: { $gte: startDate, $lte: endDate }
+      }
+    },
+    { $group: { _id: "$categoryId", total: { $sum: "$amount" } } },
+    { $lookup: { from: "categories", localField: "_id", foreignField: "_id", as: "category" } },
+    { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 0,
+        name: { $ifNull: ["$category.name", "Uncategorized"] },
+        category: { $ifNull: ["$category.name", "Uncategorized"] },
+        total: 1
+      }
+    },
+    { $sort: { total: -1 } }
+  ]);
+};
+
 // Get transaction count by type
 export const getTransactionCount = async (userId, startDate, endDate) => {
   const userObjId = toObjectId(userId);

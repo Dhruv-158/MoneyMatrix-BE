@@ -14,6 +14,14 @@ const transactionSchema = new mongoose.Schema(
     transferType: { type: String, enum: ["bank_to_cash", "cash_to_bank", "bank_to_bank"] },
     fromBankId: { type: mongoose.Schema.Types.ObjectId, ref: "Bank" },
     toBankId: { type: mongoose.Schema.Types.ObjectId, ref: "Bank" },
+    friendDetails: {
+      name: { type: String, trim: true },
+      email: { type: String, trim: true },
+      phone: { type: String, trim: true },
+      status: { type: String, enum: ["pending", "settled"], default: "pending" },
+      autoReminder: { type: Boolean, default: true },
+      settledAt: { type: Date }
+    },
     date: { type: Date, required: true, default: Date.now }
   },
   { timestamps: true }
