@@ -198,11 +198,11 @@ export const createTransactionController = asyncHandler(async (req, res) => {
 
 export const listTransactionsController = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  console.log("query ===>",req.query);
+  // console.log("query ===>",req.query);
   const { page, limit, skip } = getPagination(req.query);
 
   const filter = { userId };
-  console.log("reqQueryType =====>", req.query.type);
+  // console.log("reqQueryType =====>", req.query.type);
   if (req.query.type) {
     if (req.query.type === 'income') {
       // Income includes real income OR transfer inflows (e.g. Bank -> Cash withdrawals)
@@ -275,7 +275,7 @@ export const listTransactionsController = asyncHandler(async (req, res) => {
     listTransactions(filter, { skip, limit }),
     countTransactions(filter)
   ]);
-  console.log("🚀 ~ transactions: ========>", transactions);
+  // console.log("🚀 ~ transactions: ========>", transactions);
 
   return successResponse(res, "Transactions fetched", {
     items: transactions,

@@ -5,7 +5,7 @@ export const createTransaction = async (payload, session) => {
 };
 
 export const listTransactions = async (filter, options) => {
-  console.log("🚀 ~ listTransactions: filter, options", filter, options);
+  // console.log("🚀 ~ listTransactions: filter, options", filter, options);
   const query = Transaction.find(filter).sort({ _id: -1 }).skip(options.skip).limit(options.limit);
   return query
     .populate("bankId", "bankName accountType")
