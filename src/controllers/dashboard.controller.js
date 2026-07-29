@@ -19,6 +19,7 @@ export const getDashboard = asyncHandler(async (req, res) => {
   ]);
 
   return successResponse(res, "Dashboard fetched", {
+    user: { id: req.user.id, name: req.user.name || "Account Holder", email: req.user.email },
     ...summary,
     recentTransactions: recent,
     analytics: graph,

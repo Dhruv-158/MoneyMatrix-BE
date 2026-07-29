@@ -45,6 +45,58 @@ export const login = asyncHandler(async (req, res) => {
   const token = signToken({ id: user._id, email: user.email });
   return successResponse(res, "Login successful", {
     token,
-    user: { id: user._id, name: user.name, email: user.email }
+    user: { id: user._id, name: user.name, email: user.email, settings: user.settings }
   });
+});
+
+export const updateProfile = asyncHandler(async (req, res) => {
+  const { name, email, settings } = req.body;
+  const user = await findUserByEmail(req.user.email);
+  if (!user) {
+    return errorResponse(res, 404, "User not found");
+  }
+
+  if (name) user.name = name;
+  if (email) user.email = email;
+  if (settings) {
+    const currentSettings = user.settings || {
+      currency: "INR",
+      language: "en",
+      theme: "dark",
+      notifications: { transactions: true, budgetAlerts: true, billReminders: true, security: true }
+    };
+    user.settings = {
+      currency: settings.currency || currentSettings.currency || "INR",
+      language: settings.language || currentSettings.language || "en",
+      theme: settings.theme || currentSettings.theme || "dark",
+      notifications: {
+        ...(currentSettings.notifications || {}),
+        ...(settings.notifications || {})
+      }
+    };
+  }
+
+  await user.save();
+
+  return successResponse(res, "Settings updated successfully", {
+    user: { id: user._id, name: user.name, email: user.email, settings: user.settings }
+  });
+});
+
+export const updatePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const user = await findUserByEmail(req.user.email);
+  if (!user) {
+    return errorResponse(res, 404, "User not found");
+  }
+
+  const match = await comparePassword(currentPassword, user.password);
+  if (!match) {
+    return errorResponse(res, 400, "Current password is incorrect");
+  }
+
+  user.password = await hashPassword(newPassword);
+  await user.save();
+
+  return successResponse(res, "Password updated successfully");
 });
