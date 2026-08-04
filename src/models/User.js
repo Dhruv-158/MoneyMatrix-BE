@@ -10,6 +10,9 @@ const userSchema = new mongoose.Schema(
         currency: { type: String, default: "INR" },
         language: { type: String, default: "en" },
         theme: { type: String, default: "dark" },
+        aiProvider: { type: String, default: "groq" },
+        aiApiKey: { type: String, default: "" },
+        aiModel: { type: String, default: "" },
         notifications: {
           type: {
             transactions: { type: Boolean, default: true },
@@ -29,6 +32,9 @@ const userSchema = new mongoose.Schema(
         currency: "INR",
         language: "en",
         theme: "dark",
+        aiProvider: "groq",
+        aiApiKey: "",
+        aiModel: "",
         notifications: {
           transactions: true,
           budgetAlerts: true,
