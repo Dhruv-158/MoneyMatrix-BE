@@ -24,9 +24,13 @@ export const env = {
   cronMonthlyEmail: process.env.CRON_MONTHLY_EMAIL || "0 9 1 * *",
   disableEmailCron: process.env.DISABLE_EMAIL_CRON === "true",
   jwtSecret: process.env.JWT_SECRET,
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "15m",
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
+  /** Optional 64-char hex (32 bytes). If unset, derived from JWT_SECRET. */
+  encryptionKey: process.env.ENCRYPTION_KEY || "",
   bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS || 10),
   corsOrigin: process.env.CORS_ORIGIN || "*",
+  monitoringWebhookUrl: process.env.MONITORING_WEBHOOK_URL || "",
   smtp: {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT || 587),

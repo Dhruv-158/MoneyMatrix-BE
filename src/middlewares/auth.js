@@ -6,7 +6,7 @@ export const authMiddleware = (req, res, next) => {
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
-    return errorResponse(res, 401, "Unauthorized", { code: "NO_TOKEN" });
+    return errorResponse(res, 401, "NO_TOKEN", { code: "NO_TOKEN" });
   }
 
   try {
@@ -14,6 +14,6 @@ export const authMiddleware = (req, res, next) => {
     req.user = decoded;
     return next();
   } catch (err) {
-    return errorResponse(res, 401, "Invalid token", { code: "INVALID_TOKEN" });
+    return errorResponse(res, 401, "INVALID_TOKEN", { code: "INVALID_TOKEN" });
   }
 };

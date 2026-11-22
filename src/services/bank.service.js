@@ -1,4 +1,8 @@
 import { Bank } from "../models/Bank.js";
+import { Transaction } from "../models/Transaction.js";
+import { EmiPayment } from "../models/EmiPayment.js";
+import { Subscription } from "../models/Subscription.js";
+import { AppError } from "../utils/AppError.js";
 
 export const createBank = async (payload, session) => {
   return Bank.create([{ ...payload }], session ? { session } : undefined).then((res) => res[0]);
@@ -17,6 +21,28 @@ export const updateBank = async (bankId, userId, payload, session) => {
 };
 
 export const deleteBank = async (bankId, userId, session) => {
+  const bank = await Bank.findOne({ _id: bankId, userId }, null, session ? { session } : undefined);
+  if (!bank) return null;
+
+  const refFilter = {
+    userId,
+    $or: [{ bankId }, { fromBankId: bankId }, { toBankId: bankId }]
+  };
+
+  const [txnCount, emiCount, subCount] = await Promise.all([
+    Transaction.countDocuments(refFilter),
+    EmiPayment.countDocuments({ userId, bankId }),
+    Subscription.countDocuments({ userId, bankId })
+  ]);
+
+  if (txnCount > 0 || emiCount > 0 || subCount > 0) {
+    throw new AppError({
+      status: 409,
+      code: "BANK_IN_USE",
+      logMessage: `Bank ${bankId} still referenced txn=${txnCount} emi=${emiCount} sub=${subCount}`
+    });
+  }
+
   return Bank.findOneAndDelete({ _id: bankId, userId }, { session });
 };
 

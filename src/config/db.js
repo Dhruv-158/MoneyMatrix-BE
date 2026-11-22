@@ -1,8 +1,18 @@
 import mongoose from "mongoose";
 import { env } from "./env.js";
 
+const redactMongoUri = (uri) => {
+  try {
+    const parsed = new URL(uri);
+    const dbName = parsed.pathname?.replace(/^\//, "") || "(default)";
+    return `${parsed.protocol}//${parsed.hostname}:${parsed.port || "27017"}/${dbName}`;
+  } catch {
+    return "(invalid mongo uri)";
+  }
+};
+
 export const connectDb = async () => {
-  console.log("MongoUri",env.mongoUri)
+  console.log("MongoDB target:", redactMongoUri(env.mongoUri));
   try {
     await mongoose.connect(env.mongoUri);
     console.log("✅ MongoDB connected successfully");
