@@ -2,13 +2,19 @@ import { Transaction } from "../models/Transaction.js";
 import { Bank } from "../models/Bank.js";
 import { CashWallet } from "../models/CashWallet.js";
 import mongoose from "mongoose";
+import { logger } from "../utils/logger.js";
 
 export const getDashboardSummary = async (userId, startDate, endDate) => {
   const [cash, banks, totals] = await Promise.all([
     CashWallet.findOne({ userId }),
     Bank.find({ userId }).select("currentBalance"),
     Transaction.aggregate([
-      { $match: { userId, date: { $gte: startDate, $lte: endDate } } },
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          date: { $gte: startDate, $lte: endDate }
+        }
+      },
       { $group: { _id: "$type", total: { $sum: "$amount" } } }
     ])
   ]);
@@ -43,14 +49,19 @@ export const getRecentTransactions = async (userId, limit = 10) => {
       .sort({ date: -1 })
       .limit(limit);
   } catch (error) {
-    console.log("error : ", error);
+    logger.error("getRecentTransactions failed", { stack: error?.stack, msg: error?.message });
   }
 };
 
 export const getGraphAnalytics = async (userId, startDate, endDate) => {
   try {
     return Transaction.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          date: { $gte: startDate, $lte: endDate }
+        }
+      },
       {
         $group: {
           _id: { type: "$type", month: { $month: "$date" } },
@@ -68,7 +79,7 @@ export const getGraphAnalytics = async (userId, startDate, endDate) => {
       { $sort: { month: 1 } }
     ]);
   } catch (error) {
-    console.log("error :", error);
+    logger.error("getGraphAnalytics failed", { stack: error?.stack, msg: error?.message });
   }
 };
 
@@ -107,7 +118,7 @@ export const getCategoryExpenses = async (userId, startDate, endDate) => {
       { $sort: { total: -1 } }
     ]);
   } catch (error) {
-    console.log("error in getCategoryExpenses:", error);
+    logger.error("getCategoryExpenses failed", { stack: error?.stack, msg: error?.message });
     return [];
   }
 };

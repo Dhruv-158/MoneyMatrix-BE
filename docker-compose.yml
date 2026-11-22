@@ -1,0 +1,98 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.1
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  be:
+    build: ./MoneyMatrix-BE
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - be_uploads:/app/uploads
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      MONGO_URI: mongodb://mongo:27017/expense-tracker
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      ENABLE_TRANSACTIONS: "false"
+      DISABLE_CRON: ${DISABLE_CRON:-false}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+      MONITORING_WEBHOOK_URL: ${MONITORING_WEBHOOK_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-MoneyMatrix <no-reply@example.com>}
+    depends_on:
+      - mongo
+
+  ai:
+    build: ./AI-MoneyMatrix
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      BACKEND_BASE_URL: http://be:5000/api
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GROK_API_KEY: ${GROK_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      QDRANT_COLLECTION: moneymatrix_finance
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-gemini}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-}
+      MONITORING_WEBHOOK_URL: ${MONITORING_WEBHOOK_URL:-}
+      PORT: 8000
+    depends_on:
+      - be
+      - redis
+      - qdrant
+
+  fe:
+    build:
+      context: ./MoneyMatrix-FE
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000/api}
+        VITE_AI_URL: ${VITE_AI_URL:-http://localhost:8000}
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - be
+
+volumes:
+  mongo_data:
+  qdrant_data:
+  be_uploads:

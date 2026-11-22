@@ -1,31 +1,53 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { createdResponse, successResponse } from "../utils/response.js";
 import { getPagination } from "../utils/pagination.js";
-import { createTransaction, listTransactions, countTransactions } from "../services/transaction.service.js";
+import {
+  createTransaction,
+  listTransactions,
+  countTransactions,
+  getTransactionById,
+  deleteTransactionById
+} from "../services/transaction.service.js";
 import { getBankById, updateBankBalance } from "../services/bank.service.js";
 import { getOrCreateWallet, updateCashBalance } from "../services/cash.service.js";
 import { startSessionIfEnabled, commitSession, abortSession } from "../utils/transactionSession.js";
 import { Transaction } from "../models/Transaction.js";
 import { sendEmail } from "../emails/emailSender.js";
+import { AppError } from "../utils/AppError.js";
 
 const ensureSufficientBalance = (current, amount) => {
   if (current < amount) {
-    const err = new Error("Insufficient balance");
-    err.status = 400;
-    throw err;
+    throw new AppError({
+      status: 400,
+      code: "INSUFFICIENT_BALANCE",
+      logMessage: `Insufficient balance: have=${current} need=${amount}`
+    });
   }
 };
 
-const throwNotFound = (message) => {
-  const err = new Error(message);
-  err.status = 404;
-  throw err;
+const throwNotFound = (hint = "NOT_FOUND") => {
+  const lower = String(hint).toLowerCase();
+  let code = "NOT_FOUND";
+  if (["BANK_NOT_FOUND", "TRANSACTION_NOT_FOUND", "NOT_FOUND"].includes(hint)) {
+    code = hint;
+  } else if (lower.includes("bank")) {
+    code = "BANK_NOT_FOUND";
+  } else if (lower.includes("transaction")) {
+    code = "TRANSACTION_NOT_FOUND";
+  }
+  throw new AppError({
+    status: 404,
+    code,
+    logMessage: hint
+  });
 };
 
-const throwBadRequest = (message) => {
-  const err = new Error(message);
-  err.status = 400;
-  throw err;
+const throwBadRequest = (logMessage, code = "BAD_REQUEST") => {
+  throw new AppError({
+    status: 400,
+    code,
+    logMessage
+  });
 };
 
 export const createTransactionController = asyncHandler(async (req, res) => {
@@ -75,7 +97,7 @@ export const createTransactionController = asyncHandler(async (req, res) => {
         await updateCashBalance(userId, -amount, session);
         await updateBankBalance(toBankId, userId, amount, session);
         finalPaymentMethod = "cash";
-        finalBankId = "cash";
+        finalBankId = null;
         finalNote = note || `₹${amount} deposited to ${toBank.bankName} from Cash`;
       }
 
@@ -275,14 +297,99 @@ export const listTransactionsController = asyncHandler(async (req, res) => {
     listTransactions(filter, { skip, limit }),
     countTransactions(filter)
   ]);
-  // console.log("🚀 ~ transactions: ========>", transactions);
+
+  const hideFriendEmails = Boolean(req.user?.settings?.privacy?.hideFriendEmails);
+  // Prefer live user settings from DB when middleware only has JWT claims
+  let hideEmails = hideFriendEmails;
+  try {
+    const { findUserById } = await import("../services/user.service.js");
+    const fullUser = await findUserById(userId);
+    hideEmails = Boolean(fullUser?.settings?.privacy?.hideFriendEmails);
+  } catch {
+    /* keep JWT-derived flag */
+  }
+
+  const items = hideEmails
+    ? transactions.map((tx) => {
+        const plain = typeof tx.toObject === "function" ? tx.toObject() : { ...tx };
+        if (plain.friendDetails) {
+          plain.friendDetails = { ...plain.friendDetails, email: "" };
+        }
+        return plain;
+      })
+    : transactions;
 
   return successResponse(res, "Transactions fetched", {
-    items: transactions,
+    items,
     page,
     limit,
     total
   });
+});
+
+export const deleteTransactionController = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+  const session = await startSessionIfEnabled();
+
+  try {
+    const transaction = await getTransactionById(id, userId, session);
+    if (!transaction) throwNotFound("Transaction not found");
+
+    const { type, paymentMethod, bankId, amount, transferType, fromBankId, toBankId } = transaction;
+
+    if (type === "expense") {
+      if (paymentMethod === "bank") {
+        if (!bankId) throwBadRequest("Cannot reverse expense: missing bankId");
+        await updateBankBalance(bankId, userId, amount, session);
+      } else if (paymentMethod === "cash") {
+        await updateCashBalance(userId, amount, session);
+      }
+    } else if (type === "income") {
+      if (paymentMethod === "bank") {
+        if (!bankId) throwBadRequest("Cannot reverse income: missing bankId");
+        const bank = await getBankById(bankId, userId, session);
+        if (!bank) throwNotFound("Bank not found");
+        ensureSufficientBalance(bank.currentBalance, amount);
+        await updateBankBalance(bankId, userId, -amount, session);
+      } else if (paymentMethod === "cash") {
+        const wallet = await getOrCreateWallet(userId, session);
+        ensureSufficientBalance(wallet.balance, amount);
+        await updateCashBalance(userId, -amount, session);
+      }
+    } else if (type === "transfer") {
+      if (transferType === "bank_to_cash") {
+        if (!fromBankId) throwBadRequest("Cannot reverse transfer: missing fromBankId");
+        const wallet = await getOrCreateWallet(userId, session);
+        ensureSufficientBalance(wallet.balance, amount);
+        await updateCashBalance(userId, -amount, session);
+        await updateBankBalance(fromBankId, userId, amount, session);
+      } else if (transferType === "cash_to_bank") {
+        if (!toBankId) throwBadRequest("Cannot reverse transfer: missing toBankId");
+        const toBank = await getBankById(toBankId, userId, session);
+        if (!toBank) throwNotFound("Bank not found");
+        ensureSufficientBalance(toBank.currentBalance, amount);
+        await updateBankBalance(toBankId, userId, -amount, session);
+        await updateCashBalance(userId, amount, session);
+      } else if (transferType === "bank_to_bank") {
+        if (!fromBankId || !toBankId) throwBadRequest("Cannot reverse transfer: missing bank ids");
+        const toBank = await getBankById(toBankId, userId, session);
+        if (!toBank) throwNotFound("Bank not found");
+        ensureSufficientBalance(toBank.currentBalance, amount);
+        await updateBankBalance(toBankId, userId, -amount, session);
+        await updateBankBalance(fromBankId, userId, amount, session);
+      } else {
+        throwBadRequest("Cannot reverse transfer: unknown transferType");
+      }
+    }
+
+    const deleted = await deleteTransactionById(id, userId, session);
+    await commitSession(session);
+    return successResponse(res, "Transaction deleted", deleted);
+  } catch (err) {
+    await abortSession(session);
+    throw err;
+  }
 });
 
 export const settleFriendTransactionController = asyncHandler(async (req, res) => {

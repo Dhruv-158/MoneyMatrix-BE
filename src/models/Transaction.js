@@ -28,5 +28,7 @@ const transactionSchema = new mongoose.Schema(
 );
 
 transactionSchema.index({ userId: 1, date: -1 });
+transactionSchema.index({ "friendDetails.status": 1, "friendDetails.email": 1 });
+transactionSchema.index({ userId: 1, "friendDetails.status": 1, "friendDetails.autoReminder": 1 });
 
 export const Transaction = mongoose.model("Transaction", transactionSchema);

@@ -21,3 +21,11 @@ export const countTransactions = async (filter) => {
 export const getRecentTransactions = async (userId, limit = 10) => {
   return Transaction.find({ userId }).sort({ _id: -1 }).limit(limit);
 };
+
+export const getTransactionById = async (id, userId, session) => {
+  return Transaction.findOne({ _id: id, userId }, null, session ? { session } : undefined);
+};
+
+export const deleteTransactionById = async (id, userId, session) => {
+  return Transaction.findOneAndDelete({ _id: id, userId }, session ? { session } : undefined);
+};
